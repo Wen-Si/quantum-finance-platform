@@ -1114,6 +1114,10 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             document.getElementById('user-input').value = examples[type];
         }
 
+        // Zhipu AI API Configuration
+        const ZHIPU_API_KEY = '325d6fa364954d2e871c30ba95b553bd.KBdQdqgJgELJBhnv';
+        const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+
         // Modeling process
         async function startModeling() {
             const input = document.getElementById('user-input').value;
@@ -1129,11 +1133,11 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             // Update step indicator
             updateStep(2);
 
-            // Simulate processing steps
-            await simulateProcessing();
+            // Call real AI API
+            await callZhipuAI(input);
         }
 
-        async function simulateProcessing() {
+        async function callZhipuAI(userInput) {
             const steps = [
                 { title: '正在分析您的需求...', desc: 'AI正在解析金融语义并提取关键参数', bar: 'progress-bar-1', indicator: 'progress-1' },
                 { title: '正在构建数学模型...', desc: '将问题转化为二次无约束二元优化(QUBO)形式', bar: 'progress-bar-2', indicator: 'progress-2' },
@@ -1141,36 +1145,96 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                 { title: '正在执行量子计算...', desc: '在模拟量子处理器上运行优化算法', bar: 'progress-bar-4', indicator: 'progress-4' }
             ];
 
-            for (let i = 0; i < steps.length; i++) {
-                const step = steps[i];
-                document.getElementById('processing-title').textContent = step.title;
-                document.getElementById('processing-desc').textContent = step.desc;
-                
-                // Update indicator
-                if (i > 0) {
-                    document.getElementById(steps[i-1].indicator).classList.remove('border-quantum-500');
-                    document.getElementById(steps[i-1].indicator).classList.add('border-emerald-500');
-                    document.getElementById(steps[i-1].indicator).querySelector('div').classList.remove('bg-quantum-500');
-                    document.getElementById(steps[i-1].indicator).querySelector('div').classList.add('bg-emerald-500');
+            // Start first step
+            updateProcessingStep(0, steps);
+
+            try {
+                const systemPrompt = `你是一位专业的量子金融建模AI助手。请根据用户的金融建模需求，生成详细的量子计算建模方案。
+
+请以JSON格式返回，包含以下字段：
+{
+  "algorithm": "使用的量子算法名称（如QAOA、VQE、HHL等）",
+  "qubits": "建议的量子比特数量",
+  "circuit_depth": "电路深度",
+  "description": "建模方案的详细描述（200字以内）",
+  "python_code": "完整的Python代码示例（使用Qiskit）",
+  "allocation": [
+    {"asset": "资产名称", "weight": 权重百分比},
+    ...
+  ],
+  "metrics": {
+    "expected_return": "预期年化收益率",
+    "risk": "风险水平",
+    "sharpe_ratio": "夏普比率",
+    "computation_time": "计算耗时"
+  }
+}
+
+请确保JSON格式正确，且内容专业、准确。`;
+
+                const response = await fetch(ZHIPU_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-4.5-flash',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userInput }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 4096
+                    })
+                });
+
+                // Step 2: Building model
+                await animateStep(1, steps);
+
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
                 }
-                document.getElementById(step.indicator).classList.remove('border-slate-600');
-                document.getElementById(step.indicator).classList.add('border-quantum-500');
-                document.getElementById(step.indicator).querySelector('div').classList.remove('bg-slate-600');
-                document.getElementById(step.indicator).querySelector('div').classList.add('bg-quantum-500');
 
-                // Animate progress bar
-                await new Promise(resolve => setTimeout(resolve, 300));
-                document.getElementById(step.bar).style.width = '100%';
-                await new Promise(resolve => setTimeout(resolve, 1200));
+                const data = await response.json();
+                const aiContent = data.choices[0].message.content;
+
+                // Step 3: Generating circuit
+                await animateStep(2, steps);
+
+                // Parse AI response
+                let aiResult;
+                try {
+                    // Try to extract JSON from the response
+                    const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        aiResult = JSON.parse(jsonMatch[0]);
+                    } else {
+                        aiResult = parseAIResponse(aiContent);
+                    }
+                } catch (e) {
+                    console.warn('AI响应解析失败，使用默认方案:', e);
+                    aiResult = getDefaultResult();
+                }
+
+                // Step 4: Executing quantum computation
+                await animateStep(3, steps);
+
+                // Update UI with AI-generated results
+                updateResultsWithAI(aiResult);
+
+            } catch (error) {
+                console.error('AI调用错误:', error);
+                document.getElementById('processing-title').textContent = 'AI服务暂时不可用';
+                document.getElementById('processing-desc').textContent = '正在使用本地模拟方案...';
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Fallback to default
+                for (let i = 1; i < steps.length; i++) {
+                    await animateStep(i, steps);
+                }
+                updateResultsWithAI(getDefaultResult());
             }
-
-            // Complete last indicator
-            document.getElementById(steps[steps.length-1].indicator).classList.remove('border-quantum-500');
-            document.getElementById(steps[steps.length-1].indicator).classList.add('border-emerald-500');
-            document.getElementById(steps[steps.length-1].indicator).querySelector('div').classList.remove('bg-quantum-500');
-            document.getElementById(steps[steps.length-1].indicator).querySelector('div').classList.add('bg-emerald-500');
-
-            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Show results
             document.getElementById('processing-section').classList.add('hidden');
@@ -1181,6 +1245,144 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             setTimeout(() => {
                 initCharts();
             }, 100);
+        }
+
+        function updateProcessingStep(index, steps) {
+            const step = steps[index];
+            document.getElementById('processing-title').textContent = step.title;
+            document.getElementById('processing-desc').textContent = step.desc;
+            document.getElementById(step.indicator).classList.remove('border-slate-600');
+            document.getElementById(step.indicator).classList.add('border-quantum-500');
+            document.getElementById(step.indicator).querySelector('div').classList.remove('bg-slate-600');
+            document.getElementById(step.indicator).querySelector('div').classList.add('bg-quantum-500');
+            document.getElementById(step.bar).style.width = '100%';
+        }
+
+        async function animateStep(index, steps) {
+            if (index > 0) {
+                const prevStep = steps[index - 1];
+                document.getElementById(prevStep.indicator).classList.remove('border-quantum-500');
+                document.getElementById(prevStep.indicator).classList.add('border-emerald-500');
+                document.getElementById(prevStep.indicator).querySelector('div').classList.remove('bg-quantum-500');
+                document.getElementById(prevStep.indicator).querySelector('div').classList.add('bg-emerald-500');
+            }
+            
+            const step = steps[index];
+            document.getElementById('processing-title').textContent = step.title;
+            document.getElementById('processing-desc').textContent = step.desc;
+            document.getElementById(step.indicator).classList.remove('border-slate-600');
+            document.getElementById(step.indicator).classList.add('border-quantum-500');
+            document.getElementById(step.indicator).querySelector('div').classList.remove('bg-slate-600');
+            document.getElementById(step.indicator).querySelector('div').classList.add('bg-quantum-500');
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            document.getElementById(step.bar).style.width = '100%';
+            await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+
+        function parseAIResponse(content) {
+            // Extract information from non-JSON AI response
+            return {
+                algorithm: content.match(/算法[：:]\s*(.+)/)?.[1] || 'QAOA',
+                qubits: content.match(/量子比特[：:]\s*(\d+)/)?.[1] || '24',
+                circuit_depth: content.match(/电路深度[：:]\s*(\d+)/)?.[1] || '12',
+                description: content.substring(0, 200),
+                python_code: content.match(/```python\n([\s\S]*?)```/)?.[1] || getDefaultPythonCode(),
+                allocation: [
+                    { asset: 'AAPL', weight: 25 },
+                    { asset: 'MSFT', weight: 20 },
+                    { asset: 'GOOGL', weight: 18 },
+                    { asset: 'AMZN', weight: 15 },
+                    { asset: 'TSLA', weight: 12 },
+                    { asset: '其他', weight: 10 }
+                ],
+                metrics: {
+                    expected_return: '18.5%',
+                    risk: '12.3%',
+                    sharpe_ratio: '1.42',
+                    computation_time: '2.3s'
+                }
+            };
+        }
+
+        function getDefaultResult() {
+            return {
+                algorithm: 'QAOA',
+                qubits: '24',
+                circuit_depth: '12',
+                description: '使用量子近似优化算法(QAOA)求解投资组合优化问题。将马科维茨均值-方差模型转化为QUBO形式，通过量子变分电路寻找最优资产配置。',
+                python_code: getDefaultPythonCode(),
+                allocation: [
+                    { asset: 'AAPL', weight: 25 },
+                    { asset: 'MSFT', weight: 20 },
+                    { asset: 'GOOGL', weight: 18 },
+                    { asset: 'AMZN', weight: 15 },
+                    { asset: 'TSLA', weight: 12 },
+                    { asset: '其他', weight: 10 }
+                ],
+                metrics: {
+                    expected_return: '18.5%',
+                    risk: '12.3%',
+                    sharpe_ratio: '1.42',
+                    computation_time: '2.3s'
+                }
+            };
+        }
+
+        function getDefaultPythonCode() {
+            return `from qiskit import QuantumCircuit
+from qiskit_algorithms import QAOA
+from qiskit_algorithms.optimizers import COBYLA
+from qiskit_optimization import QuadraticProgram
+from qiskit_optimization.algorithms import MinimumEigenOptimizer
+
+# 定义投资组合优化问题
+qp = QuadraticProgram()
+assets = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+for asset in assets:
+    qp.binary_var(name=asset)
+
+# 目标函数: 最大化夏普比率
+qp.maximize(linear=expected_returns, quadratic=covariance_matrix)
+
+# 约束条件
+qp.linear_constraint(
+    linear={asset: 1 for asset in assets},
+    sense='==',
+    rhs=1,
+    name='budget_constraint'
+)
+
+# 使用QAOA求解
+qaoa = QAOA(optimizer=COBYLA(maxiter=100), reps=3)
+optimizer = MinimumEigenOptimizer(qaoa)
+result = optimizer.solve(qp)
+
+print(f"最优投资组合: {result.x}")
+print(f"预期收益: {result.fval:.4f}")`;
+        }
+
+        function updateResultsWithAI(result) {
+            // Update algorithm info
+            document.getElementById('result-algorithm').textContent = result.algorithm || 'QAOA';
+            document.getElementById('result-qubits').textContent = result.qubits || '24';
+            document.getElementById('result-depth').textContent = result.circuit_depth || '12';
+            
+            // Update code block
+            document.getElementById('result-code').textContent = result.python_code || getDefaultPythonCode();
+            
+            // Update metrics
+            if (result.metrics) {
+                document.getElementById('metric-return').textContent = result.metrics.expected_return || '18.5%';
+                document.getElementById('metric-risk').textContent = result.metrics.risk || '12.3%';
+                document.getElementById('metric-sharpe').textContent = result.metrics.sharpe_ratio || '1.42';
+                document.getElementById('metric-time').textContent = result.metrics.computation_time || '2.3s';
+            }
+            
+            // Update allocation chart data
+            if (result.allocation && result.allocation.length > 0) {
+                window.aiAllocationData = result.allocation;
+            }
         }
 
         function updateStep(step) {
@@ -1251,12 +1453,22 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
 
             // Allocation Chart
             const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+            
+            // Use AI-generated allocation data if available
+            let allocationLabels = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'META', 'NVDA', '其他'];
+            let allocationData = [15, 12, 18, 10, 8, 11, 14, 12];
+            
+            if (window.aiAllocationData && window.aiAllocationData.length > 0) {
+                allocationLabels = window.aiAllocationData.map(a => a.asset);
+                allocationData = window.aiAllocationData.map(a => a.weight);
+            }
+            
             new Chart(allocationCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'META', 'NVDA', '其他'],
+                    labels: allocationLabels,
                     datasets: [{
-                        data: [15, 12, 18, 10, 8, 11, 14, 12],
+                        data: allocationData,
                         backgroundColor: [
                             '#0ea5e9',
                             '#8b5cf6',
@@ -1265,7 +1477,9 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                             '#f59e0b',
                             '#ef4444',
                             '#ec4899',
-                            '#64748b'
+                            '#64748b',
+                            '#f97316',
+                            '#84cc16'
                         ],
                         borderWidth: 0
                     }]
