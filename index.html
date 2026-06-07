@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumFin - AI量子计算金融建模平台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'quantum': {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        'deep': {
+                            900: '#0a0e1a',
+                            800: '#0f172a',
+                            700: '#1e293b',
+                        }
+                    },
+                    fontFamily: {
+                        'serif': ['"Noto Serif SC"', 'serif'],
+                        'sans': ['"Noto Sans SC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --primary-glow: #0ea5e9;
+            --secondary-glow: #8b5cf6;
+            --accent-glow: #06b6d4;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: #0a0e1a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        /* Quantum Background Animation */
+        .quantum-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+                #0a0e1a;
+        }
+        
+        .quantum-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(14, 165, 233, 0.6);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+        
+        /* Grid Pattern */
+        .grid-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(14, 165, 233, 0.15);
+        }
+        
+        .glass-strong {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+        
+        /* Glow Effects */
+        .glow-text {
+            text-shadow: 0 0 20px rgba(14, 165, 233, 0.5), 0 0 40px rgba(14, 165, 233, 0.3);
+        }
+        
+        .glow-border {
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.2), inset 0 0 20px rgba(14, 165, 233, 0.05);
+        }
+        
+        .glow-button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0ea5e9, #8b5cf6, #06b6d4, #0ea5e9);
+            background-size: 400% 400%;
+            z-index: -1;
+            animation: glow-rotate 3s ease infinite;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .glow-button:hover::before {
+            opacity: 1;
+        }
+        
+        @keyframes glow-rotate {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Quantum Circuit Animation */
+        .circuit-line {
+            stroke-dasharray: 5, 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to { stroke-dashoffset: -10; }
+        }
+        
+        /* Typing Effect */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #0ea5e9;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* Pulse Animation */
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        /* Loading Spinner */
+        .quantum-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(14, 165, 233, 0.1);
+            border-top-color: #0ea5e9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0e1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(14, 165, 233, 0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(14, 165, 233, 0.5);
+        }
+        
+        /* Page Transitions */
+        .page {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .page.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Card Hover */
+        .feature-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(14, 165, 233, 0.15);
+            border-color: rgba(14, 165, 233, 0.4);
+        }
+        
+        /* Input Focus */
+        .quantum-input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1), 0 0 20px rgba(14, 165, 233, 0.2);
+        }
+        
+        /* Step Indicator */
+        .step-line {
+            background: linear-gradient(90deg, #0ea5e9 50%, #1e293b 50%);
+            background-size: 200% 100%;
+            transition: background-position 0.5s;
+        }
+        
+        .step-line.completed {
+            background-position: -100% 0;
+        }
+        
+        /* Result Card */
+        .result-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8));
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            border-color: rgba(14, 165, 233, 0.5);
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
+        }
+        
+        /* Code Block */
+        .code-block {
+            background: rgba(10, 14, 26, 0.8);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        /* Quantum Bit Animation */
+        .qubit {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #0ea5e9;
+            position: relative;
+            animation: qubit-pulse 2s ease-in-out infinite;
+        }
+        
+        .qubit::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            animation: qubit-inner 2s ease-in-out infinite;
+        }
+        
+        @keyframes qubit-pulse {
+            0%, 100% { box-shadow: 0 0 5px rgba(14, 165, 233, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.8), 0 0 40px rgba(14, 165, 233, 0.4); }
+        }
+        
+        @keyframes qubit-inner {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+        }
+        
+        /* Neural Network Background */
+        .neural-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+        
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #0ea5e9, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Hide scrollbar for horizontal scroll */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="quantum-bg"></div>
+    <div class="grid-pattern"></div>
+    <div class="quantum-particles" id="particles"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-strong border-b border-quantum-500/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showPage('home')">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-quantum-500 to-purple-600 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold font-serif gradient-text">QuantumFin</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">核心功能</a>
+                <a href="#scenarios" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">应用场景</a>
+                <a href="#technology" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">技术架构</a>
+                <button onclick="showPage('workspace')" class="px-5 py-2 rounded-lg bg-gradient-to-r from-quantum-600 to-purple-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-quantum-500/25 transition-all">
+                    开始建模
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page 1: Home -->
+    <div id="page-home" class="page active">
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center relative pt-20">
+            <div class="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center">
+                <div class="space-y-8">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-quantum-400 text-sm">
+                        <span class="w-2 h-2 rounded-full bg-quantum-400 animate-pulse"></span>
+                        AI驱动的量子计算金融平台
+                    </div>
+                    <h1 class="text-5xl lg:text-7xl font-bold font-serif leading-tight">
+                        用量子计算
+                        <span class="gradient-text">重塑金融</span>
+                        <br>建模未来
+                    </h1>
+                    <p class="text-lg text-slate-400 leading-relaxed max-w-xl">
+                        通过自然语言交互，将复杂的量子算法转化为直观的金融模型。
+                        无需量子物理背景，即可 harness 量子计算的指数级优势。
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="showPage('workspace')" class="glow-button px-8 py-4 rounded-xl bg-gradient-to-r from-quantum-600 to-purple-600 text-white font-medium text-lg hover:shadow-xl hover:shadow-quantum-500/30 transition-all">
+                            立即体验
+                            <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                            </svg>
+                        </button>
+                        <button onclick="scrollToSection('demo')" class="px-8 py-4 rounded-xl glass text-quantum-400 font-medium text-lg hover:bg-quantum-500/10 transition-all">
+                            观看演示
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-8 pt-4">
+                        <div>
+                            <div class="text-2xl font-bold text-white">100x</div>
+                            <div class="text-sm text-slate-500">计算加速</div>
+                        </div>
+                        <div class="w-px h-10 bg-slate-700"></div>
+                        <div>
+                            <div class="text-2xl font-bold text-white">50+</div>
+                            <div class="text-sm text-slate-500">量子算法</div>
+                        </div>
+                        <div class="w-px h-10 bg-slate-700"></div>
+                        <div>
+                            <div class="text-2xl font-bold text-white">99.9%</div>
+                            <div class="text-sm text-slate-500">建模精度</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-0 bg-gradient-to-r from-quantum-500/20 to-purple-500/20 rounded-3xl blur-3xl"></div>
+                    <div class="relative glass rounded-3xl p-8 glow-border">
+                        <div class="flex items-center gap-2 mb-6">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="ml-4 text-sm text-slate-500">QuantumFin AI Assistant</span>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex gap-3">
+                                <div class="w-8 h-8 rounded-full bg-quantum-600 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs text-white">AI</span>
+                                </div>
+                                <div class="glass rounded-2xl rounded-tl-none p-4 max-w-sm">
+                                    <p class="text-sm text-slate-300">您好！我是您的量子金融建模助手。请描述您想要解决的金融问题，我将为您设计最优的量子计算方案。</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 justify-end">
+                                <div class="bg-quantum-600/20 rounded-2xl rounded-tr-none p-4 max-w-sm border border-quantum-500/20">
+                                    <p class="text-sm text-quantum-100">帮我优化一个包含20只科技股票的投资组合，目标是在风险不超过15%的情况下最大化夏普比率</p>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs text-white">U</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="w-8 h-8 rounded-full bg-quantum-600 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs text-white">AI</span>
+                                </div>
+                                <div class="glass rounded-2xl rounded-tl-none p-4 max-w-sm">
+                                    <p class="text-sm text-slate-300">收到！我将使用<span class="text-quantum-400">量子近似优化算法(QAOA)</span>为您构建投资组合优化模型...</p>
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <div class="quantum-spinner w-4 h-4 border-2"></div>
+                                        <span class="text-xs text-quantum-400">正在生成建模方案</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-24 relative">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold font-serif mb-4">核心功能</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto">将前沿量子计算技术与金融业务场景深度融合，打造智能化建模体验</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-quantum-500/20 to-quantum-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-quantum-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">自然语言建模</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">用日常语言描述金融问题，AI自动解析意图并转化为量子计算模型，无需编程或量子物理知识</p>
+                    </div>
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">智能算法匹配</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">基于问题特征自动选择最优量子算法：QAOA、VQE、量子漫步、量子神经网络等50+种算法库</p>
+                    </div>
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">实时结果可视化</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">量子态演化、收敛过程、优化路径实时渲染，支持3D可视化和高维数据投影</p>
+                    </div>
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">方案原型生成</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">自动生成完整的建模方案文档，包括数学模型、量子电路设计、代码实现和部署指南</p>
+                    </div>
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500/20 to-rose-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">混合计算架构</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">智能分配经典计算和量子计算资源，支持IBM、Google、IonQ等多平台量子硬件接入</p>
+                    </div>
+                    <div class="feature-card glass rounded-2xl p-8">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">金融级安全</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">端到端加密、零知识证明、后量子密码学，确保金融数据和模型安全</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scenarios Section -->
+        <section id="scenarios" class="py-24 relative">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold font-serif mb-4">应用场景</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto">覆盖金融行业核心计算场景，释放量子计算的指数级潜力</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="glass rounded-3xl p-8 glow-border group cursor-pointer" onclick="goToWorkspace('投资组合优化')">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-quantum-500 to-quantum-700 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <span class="status-badge text-emerald-400 bg-emerald-400/10">热门</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3">投资组合优化</h3>
+                        <p class="text-slate-400 mb-6">利用QAOA和量子退火算法，在考虑多约束条件下寻找最优资产配置，处理传统计算机难以求解的大规模组合优化问题</p>
+                        <div class="flex items-center gap-4 text-sm text-slate-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                100x 加速
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                99.2% 精度
+                            </span>
+                        </div>
+                    </div>
+                    <div class="glass rounded-3xl p-8 glow-border group cursor-pointer" onclick="goToWorkspace('风险分析')">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <span class="status-badge text-quantum-400 bg-quantum-400/10">推荐</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3">风险分析与管理</h3>
+                        <p class="text-slate-400 mb-6">量子蒙特卡洛模拟加速VaR计算，量子机器学习识别复杂市场模式，实现实时风险监控和预警</p>
+                        <div class="flex items-center gap-4 text-sm text-slate-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                50x 加速
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                98.7% 精度
+                            </span>
+                        </div>
+                    </div>
+                    <div class="glass rounded-3xl p-8 glow-border group cursor-pointer" onclick="goToWorkspace('期权定价')">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="status-badge text-purple-400 bg-purple-400/10">高级</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3">期权定价</h3>
+                        <p class="text-slate-400 mb-6">量子振幅估计加速路径积分计算，支持多资产奇异期权定价，突破经典蒙特卡洛方法的收敛速度限制</p>
+                        <div class="flex items-center gap-4 text-sm text-slate-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                200x 加速
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                99.8% 精度
+                            </span>
+                        </div>
+                    </div>
+                    <div class="glass rounded-3xl p-8 glow-border group cursor-pointer" onclick="goToWorkspace('欺诈检测')">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <span class="status-badge text-rose-400 bg-rose-400/10">安全</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3">欺诈检测</h3>
+                        <p class="text-slate-400 mb-6">量子支持向量机和量子神经网络识别复杂欺诈模式，量子密钥分发保障交易安全，实现零信任架构</p>
+                        <div class="flex items-center gap-4 text-sm text-slate-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                75x 加速
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                97.5% 精度
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology Section -->
+        <section id="technology" class="py-24 relative">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold font-serif mb-4">技术架构</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto">四层架构设计，实现从自然语言到量子执行的端到端自动化</p>
+                </div>
+                <div class="glass rounded-3xl p-8 md:p-12">
+                    <div class="grid md:grid-cols-4 gap-6">
+                        <div class="text-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-quantum-500/20 to-quantum-600/20 flex items-center justify-center mx-auto mb-4">
+                                <span class="text-3xl font-bold text-quantum-400">1</span>
+                            </div>
+                            <h4 class="font-bold mb-2">自然语言理解</h4>
+                            <p class="text-sm text-slate-400">大语言模型解析金融语义，提取关键参数和约束条件</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-4">
+                                <span class="text-3xl font-bold text-purple-400">2</span>
+                            </div>
+                            <h4 class="font-bold mb-2">问题建模</h4>
+                            <p class="text-sm text-slate-400">自动转化为数学优化问题，选择最优量子算法策略</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center mx-auto mb-4">
+                                <span class="text-3xl font-bold text-cyan-400">3</span>
+                            </div>
+                            <h4 class="font-bold mb-2">量子编译</h4>
+                            <p class="text-sm text-slate-400">生成量子电路，优化门操作，适配目标量子硬件</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center mx-auto mb-4">
+                                <span class="text-3xl font-bold text-emerald-400">4</span>
+                            </div>
+                            <h4 class="font-bold mb-2">结果解析</h4>
+                            <p class="text-sm text-slate-400">量子测量结果解码，生成可视化报告和业务洞察</p>
+                        </div>
+                    </div>
+                    <div class="mt-12 flex justify-center">
+                        <div class="glass rounded-2xl p-6 max-w-3xl w-full">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm font-medium text-slate-400">量子计算层</span>
+                                <span class="text-xs text-quantum-400">支持多后端</span>
+                            </div>
+                            <div class="flex flex-wrap gap-3 justify-center">
+                                <span class="px-4 py-2 rounded-lg bg-quantum-500/10 text-quantum-400 text-sm border border-quantum-500/20">IBM Quantum</span>
+                                <span class="px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 text-sm border border-purple-500/20">Google Sycamore</span>
+                                <span class="px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 text-sm border border-cyan-500/20">IonQ</span>
+                                <span class="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm border border-emerald-500/20">Rigetti</span>
+                                <span class="px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 text-sm border border-amber-500/20">Xanadu</span>
+                                <span class="px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 text-sm border border-rose-500/20">D-Wave</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-24 relative">
+            <div class="max-w-4xl mx-auto px-6 text-center">
+                <div class="glass rounded-3xl p-12 glow-border">
+                    <h2 class="text-4xl font-bold font-serif mb-4">准备好探索量子金融了吗？</h2>
+                    <p class="text-slate-400 mb-8 max-w-xl mx-auto">立即体验自然语言驱动的量子计算建模，让您的金融分析进入量子时代</p>
+                    <button onclick="showPage('workspace')" class="glow-button px-10 py-4 rounded-xl bg-gradient-to-r from-quantum-600 to-purple-600 text-white font-medium text-lg hover:shadow-xl hover:shadow-quantum-500/30 transition-all">
+                        开始量子建模
+                        <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-800 py-12">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-quantum-500 to-purple-600 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold gradient-text">QuantumFin</span>
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        © 2024 QuantumFin. 量子计算驱动金融创新
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Page 2: Workspace -->
+    <div id="page-workspace" class="page">
+        <div class="min-h-screen pt-24 pb-12">
+            <div class="max-w-6xl mx-auto px-6">
+                <!-- Header -->
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-bold font-serif mb-4">量子金融建模工作台</h1>
+                    <p class="text-slate-400">描述您的金融问题，AI将自动设计量子计算方案</p>
+                </div>
+
+                <!-- Progress Steps -->
+                <div class="flex items-center justify-center mb-12">
+                    <div class="flex items-center gap-4">
+                        <div class="flex flex-col items-center">
+                            <div id="step1-indicator" class="w-10 h-10 rounded-full bg-quantum-600 flex items-center justify-center text-white font-bold">1</div>
+                            <span class="text-xs text-quantum-400 mt-2">输入需求</span>
+                        </div>
+                        <div id="step1-line" class="w-20 h-1 bg-slate-700 rounded"></div>
+                        <div class="flex flex-col items-center">
+                            <div id="step2-indicator" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold">2</div>
+                            <span class="text-xs text-slate-500 mt-2">方案生成</span>
+                        </div>
+                        <div id="step2-line" class="w-20 h-1 bg-slate-700 rounded"></div>
+                        <div class="flex flex-col items-center">
+                            <div id="step3-indicator" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold">3</div>
+                            <span class="text-xs text-slate-500 mt-2">量子计算</span>
+                        </div>
+                        <div id="step3-line" class="w-20 h-1 bg-slate-700 rounded"></div>
+                        <div class="flex flex-col items-center">
+                            <div id="step4-indicator" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold">4</div>
+                            <span class="text-xs text-slate-500 mt-2">结果分析</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <div id="input-section" class="max-w-3xl mx-auto">
+                    <div class="glass rounded-2xl p-8 glow-border">
+                        <label class="block text-sm font-medium text-slate-300 mb-4">描述您的金融建模需求</label>
+                        <textarea 
+                            id="user-input" 
+                            class="quantum-input w-full h-40 bg-deep-900/50 rounded-xl p-4 text-slate-200 border border-slate-700 resize-none"
+                            placeholder="例如：帮我优化一个包含20只科技股票的投资组合，目标是在风险不超过15%的情况下最大化夏普比率..."
+                        ></textarea>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="flex gap-2">
+                                <button onclick="setExample('portfolio')" class="px-3 py-1.5 rounded-lg glass text-xs text-quantum-400 hover:bg-quantum-500/10 transition-colors">投资组合</button>
+                                <button onclick="setExample('risk')" class="px-3 py-1.5 rounded-lg glass text-xs text-purple-400 hover:bg-purple-500/10 transition-colors">风险分析</button>
+                                <button onclick="setExample('option')" class="px-3 py-1.5 rounded-lg glass text-xs text-cyan-400 hover:bg-cyan-500/10 transition-colors">期权定价</button>
+                            </div>
+                            <button onclick="startModeling()" class="glow-button px-6 py-3 rounded-xl bg-gradient-to-r from-quantum-600 to-purple-600 text-white font-medium hover:shadow-lg transition-all flex items-center gap-2">
+                                <span>开始建模</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Section -->
+                <div id="processing-section" class="hidden max-w-3xl mx-auto">
+                    <div class="glass rounded-2xl p-8 glow-border text-center">
+                        <div class="relative w-24 h-24 mx-auto mb-6">
+                            <div class="absolute inset-0 rounded-full border-2 border-quantum-500/20"></div>
+                            <div class="absolute inset-0 rounded-full border-2 border-quantum-500 border-t-transparent animate-spin"></div>
+                            <div class="absolute inset-4 rounded-full bg-gradient-to-br from-quantum-500/20 to-purple-500/20 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-quantum-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2" id="processing-title">正在分析您的需求...</h3>
+                        <p class="text-slate-400 text-sm" id="processing-desc">AI正在解析金融语义并匹配最优量子算法</p>
+                        <div class="mt-6 space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div id="progress-1" class="w-6 h-6 rounded-full border-2 border-quantum-500 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-quantum-500"></div>
+                                </div>
+                                <span class="text-sm text-slate-300">自然语言理解</span>
+                                <div class="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="progress-bar-1" class="h-full bg-quantum-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="progress-2" class="w-6 h-6 rounded-full border-2 border-slate-600 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                                </div>
+                                <span class="text-sm text-slate-400">问题建模与算法选择</span>
+                                <div class="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="progress-bar-2" class="h-full bg-quantum-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="progress-3" class="w-6 h-6 rounded-full border-2 border-slate-600 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                                </div>
+                                <span class="text-sm text-slate-400">量子电路生成</span>
+                                <div class="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="progress-bar-3" class="h-full bg-quantum-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="progress-4" class="w-6 h-6 rounded-full border-2 border-slate-600 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                                </div>
+                                <span class="text-sm text-slate-400">执行计算与结果解析</span>
+                                <div class="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="progress-bar-4" class="h-full bg-quantum-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Section -->
+                <div id="result-section" class="hidden space-y-8">
+                    <!-- Solution Overview -->
+                    <div class="glass rounded-2xl p-8 glow-border">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold">建模方案</h3>
+                            <span class="status-badge text-emerald-400 bg-emerald-400/10">生成成功</span>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-6 mb-6">
+                            <div class="glass rounded-xl p-4">
+                                <div class="text-sm text-slate-400 mb-1">选用算法</div>
+                                <div class="text-lg font-bold text-quantum-400" id="result-algorithm">QAOA</div>
+                            </div>
+                            <div class="glass rounded-xl p-4">
+                                <div class="text-sm text-slate-400 mb-1">量子比特数</div>
+                                <div class="text-lg font-bold text-purple-400" id="result-qubits">24</div>
+                            </div>
+                            <div class="glass rounded-xl p-4">
+                                <div class="text-sm text-slate-400 mb-1">电路深度</div>
+                                <div class="text-lg font-bold text-cyan-400" id="result-depth">12</div>
+                            </div>
+                        </div>
+                        <div class="code-block rounded-xl p-4 overflow-x-auto">
+                            <pre class="text-sm text-slate-300" id="result-code"># 量子近似优化算法 (QAOA)
+# 投资组合优化模型
+
+from qiskit import QuantumCircuit
+from qiskit_algorithms import QAOA
+from qiskit_algorithms.optimizers import COBYLA
+from qiskit.circuit.library import QAOAAnsatz
+
+# 构建投资组合优化问题
+problem = PortfolioOptimization(
+    expected_returns=returns,
+    covariances=cov_matrix,
+    risk_factor=0.15,
+    budget=10
+)
+
+# 配置QAOA参数
+qaoa = QAOA(
+    sampler=QuantumInstance(),
+    optimizer=COBYLA(maxiter=100),
+    reps=3
+)
+
+# 执行量子优化
+result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
+                        </div>
+                    </div>
+
+                    <!-- Quantum Circuit Visualization -->
+                    <div class="glass rounded-2xl p-8 glow-border">
+                        <h3 class="text-xl font-bold mb-6">量子电路</h3>
+                        <div class="relative h-64 bg-deep-900/50 rounded-xl overflow-hidden">
+                            <svg class="w-full h-full" viewBox="0 0 800 200">
+                                <!-- Qubit lines -->
+                                <line x1="50" y1="40" x2="750" y2="40" stroke="rgba(14, 165, 233, 0.3)" stroke-width="2"/>
+                                <line x1="50" y1="80" x2="750" y2="80" stroke="rgba(14, 165, 233, 0.3)" stroke-width="2"/>
+                                <line x1="50" y1="120" x2="750" y2="120" stroke="rgba(14, 165, 233, 0.3)" stroke-width="2"/>
+                                <line x1="50" y1="160" x2="750" y2="160" stroke="rgba(14, 165, 233, 0.3)" stroke-width="2"/>
+                                
+                                <!-- Qubit labels -->
+                                <text x="20" y="45" fill="#0ea5e9" font-size="12">q0</text>
+                                <text x="20" y="85" fill="#0ea5e9" font-size="12">q1</text>
+                                <text x="20" y="125" fill="#0ea5e9" font-size="12">q2</text>
+                                <text x="20" y="165" fill="#0ea5e9" font-size="12">q3</text>
+                                
+                                <!-- Hadamard gates -->
+                                <rect x="80" y="30" width="20" height="20" fill="none" stroke="#0ea5e9" stroke-width="2" rx="2"/>
+                                <text x="85" y="45" fill="#0ea5e9" font-size="12">H</text>
+                                <rect x="80" y="70" width="20" height="20" fill="none" stroke="#0ea5e9" stroke-width="2" rx="2"/>
+                                <text x="85" y="85" fill="#0ea5e9" font-size="12">H</text>
+                                <rect x="80" y="110" width="20" height="20" fill="none" stroke="#0ea5e9" stroke-width="2" rx="2"/>
+                                <text x="85" y="125" fill="#0ea5e9" font-size="12">H</text>
+                                <rect x="80" y="150" width="20" height="20" fill="none" stroke="#0ea5e9" stroke-width="2" rx="2"/>
+                                <text x="85" y="165" fill="#0ea5e9" font-size="12">H</text>
+                                
+                                <!-- CNOT gates -->
+                                <circle cx="150" cy="40" r="6" fill="#0ea5e9"/>
+                                <circle cx="150" cy="80" r="6" fill="#0ea5e9"/>
+                                <line x1="150" y1="40" x2="150" y2="80" stroke="#0ea5e9" stroke-width="2"/>
+                                
+                                <circle cx="220" cy="120" r="6" fill="#8b5cf6"/>
+                                <circle cx="220" cy="160" r="6" fill="#8b5cf6"/>
+                                <line x1="220" y1="120" x2="220" y2="160" stroke="#8b5cf6" stroke-width="2"/>
+                                
+                                <!-- RZ gates -->
+                                <rect x="280" y="30" width="20" height="20" fill="none" stroke="#06b6d4" stroke-width="2" rx="2"/>
+                                <text x="283" y="45" fill="#06b6d4" font-size="10">RZ</text>
+                                <rect x="280" y="70" width="20" height="20" fill="none" stroke="#06b6d4" stroke-width="2" rx="2"/>
+                                <text x="283" y="85" fill="#06b6d4" font-size="10">RZ</text>
+                                
+                                <!-- RX gates -->
+                                <rect x="350" y="110" width="20" height="20" fill="none" stroke="#10b981" stroke-width="2" rx="2"/>
+                                <text x="353" y="125" fill="#10b981" font-size="10">RX</text>
+                                <rect x="350" y="150" width="20" height="20" fill="none" stroke="#10b981" stroke-width="2" rx="2"/>
+                                <text x="353" y="165" fill="#10b981" font-size="10">RX</text>
+                                
+                                <!-- Barrier -->
+                                <line x1="420" y1="30" x2="420" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="5,5"/>
+                                <text x="415" y="190" fill="rgba(255,255,255,0.5)" font-size="10">Barrier</text>
+                                
+                                <!-- Measurement -->
+                                <rect x="500" y="30" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" rx="2"/>
+                                <text x="503" y="45" fill="#f59e0b" font-size="10">M</text>
+                                <rect x="500" y="70" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" rx="2"/>
+                                <text x="503" y="85" fill="#f59e0b" font-size="10">M</text>
+                                <rect x="500" y="110" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" rx="2"/>
+                                <text x="503" y="125" fill="#f59e0b" font-size="10">M</text>
+                                <rect x="500" y="150" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" rx="2"/>
+                                <text x="503" y="165" fill="#f59e0b" font-size="10">M</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Results Charts -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="glass rounded-2xl p-6 glow-border">
+                            <h4 class="font-bold mb-4">收敛曲线</h4>
+                            <canvas id="convergenceChart" height="200"></canvas>
+                        </div>
+                        <div class="glass rounded-2xl p-6 glow-border">
+                            <h4 class="font-bold mb-4">资产配置</h4>
+                            <canvas id="allocationChart" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="glass rounded-2xl p-8 glow-border">
+                        <h3 class="text-xl font-bold mb-6">性能指标</h3>
+                        <div class="grid md:grid-cols-4 gap-6">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-quantum-400 mb-1" id="metric-return">18.5%</div>
+                                <div class="text-sm text-slate-400">预期年化收益</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-purple-400 mb-1" id="metric-risk">12.3%</div>
+                                <div class="text-sm text-slate-400">组合风险</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-cyan-400 mb-1" id="metric-sharpe">1.42</div>
+                                <div class="text-sm text-slate-400">夏普比率</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-emerald-400 mb-1" id="metric-time">2.3s</div>
+                                <div class="text-sm text-slate-400">计算耗时</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-center gap-4">
+                        <button onclick="resetWorkspace()" class="px-6 py-3 rounded-xl glass text-slate-300 hover:bg-slate-700/50 transition-all">
+                            重新建模
+                        </button>
+                        <button class="glow-button px-6 py-3 rounded-xl bg-gradient-to-r from-quantum-600 to-purple-600 text-white hover:shadow-lg transition-all">
+                            导出报告
+                        </button>
+                        <button class="px-6 py-3 rounded-xl glass text-quantum-400 hover:bg-quantum-500/10 transition-all">
+                            部署到量子云
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Page navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById('page-' + pageName).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function goToWorkspace(scenario) {
+            showPage('workspace');
+            if (scenario) {
+                const examples = {
+                    '投资组合优化': '帮我优化一个包含20只科技股票的投资组合，目标是在风险不超过15%的情况下最大化夏普比率',
+                    '风险分析': '分析当前市场环境下我的投资组合的尾部风险，计算99%置信度下的CVaR',
+                    '期权定价': '计算一个行权价为100美元的欧式看涨期权价格，标的资产现价95美元，波动率20%，无风险利率5%，到期时间1年',
+                    '欺诈检测': '构建一个量子机器学习模型来检测信用卡交易中的异常模式'
+                };
+                document.getElementById('user-input').value = examples[scenario] || '';
+            }
+        }
+
+        function setExample(type) {
+            const examples = {
+                'portfolio': '帮我优化一个包含20只科技股票的投资组合，目标是在风险不超过15%的情况下最大化夏普比率',
+                'risk': '分析当前市场环境下我的投资组合的尾部风险，计算99%置信度下的CVaR',
+                'option': '计算一个行权价为100美元的欧式看涨期权价格，标的资产现价95美元，波动率20%，无风险利率5%，到期时间1年'
+            };
+            document.getElementById('user-input').value = examples[type];
+        }
+
+        // Modeling process
+        async function startModeling() {
+            const input = document.getElementById('user-input').value;
+            if (!input.trim()) {
+                alert('请输入您的金融建模需求');
+                return;
+            }
+
+            // Hide input, show processing
+            document.getElementById('input-section').classList.add('hidden');
+            document.getElementById('processing-section').classList.remove('hidden');
+
+            // Update step indicator
+            updateStep(2);
+
+            // Simulate processing steps
+            await simulateProcessing();
+        }
+
+        async function simulateProcessing() {
+            const steps = [
+                { title: '正在分析您的需求...', desc: 'AI正在解析金融语义并提取关键参数', bar: 'progress-bar-1', indicator: 'progress-1' },
+                { title: '正在构建数学模型...', desc: '将问题转化为二次无约束二元优化(QUBO)形式', bar: 'progress-bar-2', indicator: 'progress-2' },
+                { title: '正在生成量子电路...', desc: '设计QAOA ansatz并优化电路参数', bar: 'progress-bar-3', indicator: 'progress-3' },
+                { title: '正在执行量子计算...', desc: '在模拟量子处理器上运行优化算法', bar: 'progress-bar-4', indicator: 'progress-4' }
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                document.getElementById('processing-title').textContent = step.title;
+                document.getElementById('processing-desc').textContent = step.desc;
+                
+                // Update indicator
+                if (i > 0) {
+                    document.getElementById(steps[i-1].indicator).classList.remove('border-quantum-500');
+                    document.getElementById(steps[i-1].indicator).classList.add('border-emerald-500');
+                    document.getElementById(steps[i-1].indicator).querySelector('div').classList.remove('bg-quantum-500');
+                    document.getElementById(steps[i-1].indicator).querySelector('div').classList.add('bg-emerald-500');
+                }
+                document.getElementById(step.indicator).classList.remove('border-slate-600');
+                document.getElementById(step.indicator).classList.add('border-quantum-500');
+                document.getElementById(step.indicator).querySelector('div').classList.remove('bg-slate-600');
+                document.getElementById(step.indicator).querySelector('div').classList.add('bg-quantum-500');
+
+                // Animate progress bar
+                await new Promise(resolve => setTimeout(resolve, 300));
+                document.getElementById(step.bar).style.width = '100%';
+                await new Promise(resolve => setTimeout(resolve, 1200));
+            }
+
+            // Complete last indicator
+            document.getElementById(steps[steps.length-1].indicator).classList.remove('border-quantum-500');
+            document.getElementById(steps[steps.length-1].indicator).classList.add('border-emerald-500');
+            document.getElementById(steps[steps.length-1].indicator).querySelector('div').classList.remove('bg-quantum-500');
+            document.getElementById(steps[steps.length-1].indicator).querySelector('div').classList.add('bg-emerald-500');
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Show results
+            document.getElementById('processing-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            updateStep(4);
+
+            // Initialize charts
+            setTimeout(() => {
+                initCharts();
+            }, 100);
+        }
+
+        function updateStep(step) {
+            const indicators = ['step1-indicator', 'step2-indicator', 'step3-indicator', 'step4-indicator'];
+            const lines = ['step1-line', 'step2-line', 'step3-line'];
+
+            indicators.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (index < step) {
+                    el.classList.remove('bg-slate-700', 'text-slate-400');
+                    el.classList.add('bg-quantum-600', 'text-white');
+                }
+            });
+
+            lines.forEach((id, index) => {
+                if (index < step - 1) {
+                    document.getElementById(id).classList.remove('bg-slate-700');
+                    document.getElementById(id).classList.add('bg-quantum-600');
+                }
+            });
+        }
+
+        function initCharts() {
+            // Convergence Chart
+            const convergenceCtx = document.getElementById('convergenceChart').getContext('2d');
+            const convergenceData = [];
+            for (let i = 0; i <= 50; i++) {
+                convergenceData.push({
+                    x: i,
+                    y: -2.5 + 1.5 * Math.exp(-i / 10) + 0.1 * Math.random()
+                });
+            }
+
+            new Chart(convergenceCtx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: '能量收敛',
+                        data: convergenceData,
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: '迭代次数', color: '#64748b' },
+                            grid: { color: 'rgba(100, 116, 139, 0.1)' },
+                            ticks: { color: '#64748b' }
+                        },
+                        y: {
+                            title: { display: true, text: '能量', color: '#64748b' },
+                            grid: { color: 'rgba(100, 116, 139, 0.1)' },
+                            ticks: { color: '#64748b' }
+                        }
+                    }
+                }
+            });
+
+            // Allocation Chart
+            const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+            new Chart(allocationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'META', 'NVDA', '其他'],
+                    datasets: [{
+                        data: [15, 12, 18, 10, 8, 11, 14, 12],
+                        backgroundColor: [
+                            '#0ea5e9',
+                            '#8b5cf6',
+                            '#06b6d4',
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#ec4899',
+                            '#64748b'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function resetWorkspace() {
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('input-section').classList.remove('hidden');
+            document.getElementById('user-input').value = '';
+            
+            // Reset progress
+            ['progress-bar-1', 'progress-bar-2', 'progress-bar-3', 'progress-bar-4'].forEach(id => {
+                document.getElementById(id).style.width = '0%';
+            });
+            
+            // Reset indicators
+            const indicators = ['progress-1', 'progress-2', 'progress-3', 'progress-4'];
+            indicators.forEach((id, index) => {
+                const el = document.getElementById(id);
+                el.classList.remove('border-quantum-500', 'border-emerald-500');
+                el.classList.add('border-slate-600');
+                el.querySelector('div').classList.remove('bg-quantum-500', 'bg-emerald-500');
+                el.querySelector('div').classList.add('bg-slate-600');
+            });
+
+            // Reset step indicators
+            const stepIndicators = ['step1-indicator', 'step2-indicator', 'step3-indicator', 'step4-indicator'];
+            stepIndicators.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (index > 0) {
+                    el.classList.remove('bg-quantum-600', 'text-white');
+                    el.classList.add('bg-slate-700', 'text-slate-400');
+                }
+            });
+            
+            const lines = ['step1-line', 'step2-line', 'step3-line'];
+            lines.forEach(id => {
+                document.getElementById(id).classList.remove('bg-quantum-600');
+                document.getElementById(id).classList.add('bg-slate-700');
+            });
+        }
+
+        // GSAP Animations
+        if (typeof gsap !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Animate feature cards
+            gsap.utils.toArray('.feature-card').forEach((card, i) => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: 'top 85%',
+                    },
+                    y: 50,
+                    opacity: 0,
+                    duration: 0.6,
+                    delay: i * 0.1
+                });
+            });
+
+            // Animate scenario cards
+            gsap.utils.toArray('.glass.rounded-3xl.p-8').forEach((card, i) => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: 'top 85%',
+                    },
+                    y: 30,
+                    opacity: 0,
+                    duration: 0.5,
+                    delay: i * 0.15
+                });
+            });
+        }
+    </script>
+</body>
+</html>
