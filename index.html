@@ -1145,8 +1145,11 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                 { title: '正在执行量子计算...', desc: '在模拟量子处理器上运行优化算法', bar: 'progress-bar-4', indicator: 'progress-4' }
             ];
 
-            // Start first step
-            updateProcessingStep(0, steps);
+            // Start first step animation (non-blocking)
+            animateStepVisual(0, steps);
+
+            let aiResult = null;
+            let apiError = null;
 
             try {
                 const systemPrompt = `你是一位专业的量子金融建模AI助手。请根据用户的金融建模需求，生成详细的量子计算建模方案。
@@ -1172,6 +1175,10 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
 
 请确保JSON格式正确，且内容专业、准确。`;
 
+                // Create fetch with timeout (15 seconds)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
                 const response = await fetch(ZHIPU_API_URL, {
                     method: 'POST',
                     headers: {
@@ -1186,11 +1193,10 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                         ],
                         temperature: 0.7,
                         max_tokens: 4096
-                    })
+                    }),
+                    signal: controller.signal
                 });
-
-                // Step 2: Building model
-                await animateStep(1, steps);
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     throw new Error(`API请求失败: ${response.status}`);
@@ -1199,13 +1205,8 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                 const data = await response.json();
                 const aiContent = data.choices[0].message.content;
 
-                // Step 3: Generating circuit
-                await animateStep(2, steps);
-
                 // Parse AI response
-                let aiResult;
                 try {
-                    // Try to extract JSON from the response
                     const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
                         aiResult = JSON.parse(jsonMatch[0]);
@@ -1217,24 +1218,19 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                     aiResult = getDefaultResult();
                 }
 
-                // Step 4: Executing quantum computation
-                await animateStep(3, steps);
-
-                // Update UI with AI-generated results
-                updateResultsWithAI(aiResult);
-
             } catch (error) {
                 console.error('AI调用错误:', error);
-                document.getElementById('processing-title').textContent = 'AI服务暂时不可用';
-                document.getElementById('processing-desc').textContent = '正在使用本地模拟方案...';
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Fallback to default
-                for (let i = 1; i < steps.length; i++) {
-                    await animateStep(i, steps);
-                }
-                updateResultsWithAI(getDefaultResult());
+                apiError = error.message || '未知错误';
+                aiResult = getDefaultResult();
             }
+
+            // Continue visual animation for remaining steps
+            for (let i = 1; i < steps.length; i++) {
+                await animateStepVisual(i, steps);
+            }
+
+            // Update UI with results
+            updateResultsWithAI(aiResult);
 
             // Show results
             document.getElementById('processing-section').classList.add('hidden');
@@ -1245,6 +1241,28 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             setTimeout(() => {
                 initCharts();
             }, 100);
+        }
+
+        async function animateStepVisual(index, steps) {
+            if (index > 0) {
+                const prevStep = steps[index - 1];
+                document.getElementById(prevStep.indicator).classList.remove('border-quantum-500');
+                document.getElementById(prevStep.indicator).classList.add('border-emerald-500');
+                document.getElementById(prevStep.indicator).querySelector('div').classList.remove('bg-quantum-500');
+                document.getElementById(prevStep.indicator).querySelector('div').classList.add('bg-emerald-500');
+            }
+            
+            const step = steps[index];
+            document.getElementById('processing-title').textContent = step.title;
+            document.getElementById('processing-desc').textContent = step.desc;
+            document.getElementById(step.indicator).classList.remove('border-slate-600');
+            document.getElementById(step.indicator).classList.add('border-quantum-500');
+            document.getElementById(step.indicator).querySelector('div').classList.remove('bg-slate-600');
+            document.getElementById(step.indicator).querySelector('div').classList.add('bg-quantum-500');
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            document.getElementById(step.bar).style.width = '100%';
+            await new Promise(resolve => setTimeout(resolve, 1200));
         }
 
         function updateProcessingStep(index, steps) {
