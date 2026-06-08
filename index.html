@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -406,9 +407,20 @@
                 <a href="#features" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">核心功能</a>
                 <a href="#scenarios" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">应用场景</a>
                 <a href="#technology" class="text-sm text-slate-400 hover:text-quantum-400 transition-colors">技术架构</a>
-                <button onclick="showPage('workspace')" class="px-5 py-2 rounded-lg bg-gradient-to-r from-quantum-600 to-purple-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-quantum-500/25 transition-all">
-                    开始建模
-                </button>
+                <div id="auth-buttons">
+                    <button onclick="showAuthModal('login')" class="px-5 py-2 rounded-lg glass text-quantum-400 text-sm font-medium hover:bg-quantum-500/10 transition-all">
+                        登录
+                    </button>
+                    <button onclick="showAuthModal('register')" class="px-5 py-2 rounded-lg bg-gradient-to-r from-quantum-600 to-purple-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-quantum-500/25 transition-all">
+                        注册
+                    </button>
+                </div>
+                <div id="user-info" class="hidden items-center gap-3">
+                    <span class="text-sm text-slate-300" id="username-display"></span>
+                    <button onclick="logout()" class="px-3 py-1.5 rounded-lg glass text-xs text-slate-400 hover:text-red-400 transition-colors">
+                        退出
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -1114,12 +1126,155 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             document.getElementById('user-input').value = examples[type];
         }
 
-        // Zhipu AI API Configuration
-        const ZHIPU_API_KEY = '325d6fa364954d2e871c30ba95b553bd.KBdQdqgJgELJBhnv';
-        const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+        // Backend API Integration
+        const API_BASE_URL = 'https://quantum-finance-api.vercel.app/api';
+
+        // Auth state management
+        let currentUser = null;
+
+        async function initAuth() {
+            if (isLoggedIn()) {
+                try {
+                    const me = await getMe();
+                    currentUser = me;
+                    updateAuthUI();
+                } catch (e) {
+                    removeToken();
+                    updateAuthUI();
+                }
+            } else {
+                updateAuthUI();
+            }
+        }
+
+        function updateAuthUI() {
+            const authButtons = document.getElementById('auth-buttons');
+            const userInfo = document.getElementById('user-info');
+            const usernameDisplay = document.getElementById('username-display');
+            
+            if (currentUser) {
+                authButtons.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                userInfo.classList.add('flex');
+                usernameDisplay.textContent = currentUser.username;
+            } else {
+                authButtons.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                userInfo.classList.remove('flex');
+            }
+        }
+
+        function showAuthModal(type) {
+            const modal = document.createElement('div');
+            modal.id = 'auth-modal';
+            modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm';
+            modal.innerHTML = `
+                <div class="glass rounded-2xl p-8 max-w-md w-full mx-4 glow-border">
+                    <h2 class="text-2xl font-bold mb-6 text-center">${type === 'login' ? '登录' : '注册'}</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-2">用户名</label>
+                            <input type="text" id="auth-username" class="quantum-input w-full bg-deep-900/50 rounded-xl p-3 text-slate-200 border border-slate-700" placeholder="请输入用户名">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-2">密码</label>
+                            <input type="password" id="auth-password" class="quantum-input w-full bg-deep-900/50 rounded-xl p-3 text-slate-200 border border-slate-700" placeholder="请输入密码">
+                        </div>
+                        <div id="auth-error" class="text-red-400 text-sm hidden"></div>
+                        <button onclick="handleAuth('${type}')" class="w-full py-3 rounded-xl bg-gradient-to-r from-quantum-600 to-purple-600 text-white font-medium hover:shadow-lg transition-all">
+                            ${type === 'login' ? '登录' : '注册'}
+                        </button>
+                        <p class="text-center text-sm text-slate-400">
+                            ${type === 'login' ? '还没有账号？' : '已有账号？'}
+                            <button onclick="switchAuthModal('${type === 'login' ? 'register' : 'login'}')" class="text-quantum-400 hover:underline">
+                                ${type === 'login' ? '立即注册' : '立即登录'}
+                            </button>
+                        </p>
+                    </div>
+                    <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (modal) modal.remove();
+        }
+
+        function switchAuthModal(type) {
+            closeAuthModal();
+            showAuthModal(type);
+        }
+
+        async function handleAuth(type) {
+            const username = document.getElementById('auth-username').value;
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
+            
+            if (!username || !password) {
+                errorEl.textContent = '请填写用户名和密码';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const data = type === 'login' 
+                    ? await login(username, password)
+                    : await register(username, password);
+                currentUser = { userId: data.userId, username: data.username };
+                updateAuthUI();
+                closeAuthModal();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            removeToken();
+            currentUser = null;
+            updateAuthUI();
+        }
+
+        // Override apiCall for local backend
+        async function apiCall(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || `API错误: ${response.status}`);
+            }
+            
+            return data;
+        }
 
         // Modeling process
         async function startModeling() {
+            if (!isLoggedIn()) {
+                showAuthModal('login');
+                return;
+            }
+            
             const input = document.getElementById('user-input').value;
             if (!input.trim()) {
                 alert('请输入您的金融建模需求');
@@ -1133,11 +1288,11 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             // Update step indicator
             updateStep(2);
 
-            // Call real AI API
-            await callZhipuAI(input);
+            // Call backend API
+            await callBackendModeling(input);
         }
 
-        async function callZhipuAI(userInput) {
+        async function callBackendModeling(userInput) {
             const steps = [
                 { title: '正在分析您的需求...', desc: 'AI正在解析金融语义并提取关键参数', bar: 'progress-bar-1', indicator: 'progress-1' },
                 { title: '正在构建数学模型...', desc: '将问题转化为二次无约束二元优化(QUBO)形式', bar: 'progress-bar-2', indicator: 'progress-2' },
@@ -1149,78 +1304,12 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             animateStepVisual(0, steps);
 
             let aiResult = null;
-            let apiError = null;
 
             try {
-                const systemPrompt = `你是一位专业的量子金融建模AI助手。请根据用户的金融建模需求，生成详细的量子计算建模方案。
-
-请以JSON格式返回，包含以下字段：
-{
-  "algorithm": "使用的量子算法名称（如QAOA、VQE、HHL等）",
-  "qubits": "建议的量子比特数量",
-  "circuit_depth": "电路深度",
-  "description": "建模方案的详细描述（200字以内）",
-  "python_code": "完整的Python代码示例（使用Qiskit）",
-  "allocation": [
-    {"asset": "资产名称", "weight": 权重百分比},
-    ...
-  ],
-  "metrics": {
-    "expected_return": "预期年化收益率",
-    "risk": "风险水平",
-    "sharpe_ratio": "夏普比率",
-    "computation_time": "计算耗时"
-  }
-}
-
-请确保JSON格式正确，且内容专业、准确。`;
-
-                // Create fetch with timeout (15 seconds)
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const response = await fetch(ZHIPU_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${ZHIPU_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'glm-4-flash',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userInput }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 4096
-                    }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`API请求失败: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const aiContent = data.choices[0].message.content;
-
-                // Parse AI response
-                try {
-                    const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        aiResult = JSON.parse(jsonMatch[0]);
-                    } else {
-                        aiResult = parseAIResponse(aiContent);
-                    }
-                } catch (e) {
-                    console.warn('AI响应解析失败，使用默认方案:', e);
-                    aiResult = getDefaultResult();
-                }
-
+                const data = await createModeling(userInput);
+                aiResult = data.result;
             } catch (error) {
-                console.error('AI调用错误:', error);
-                apiError = error.message || '未知错误';
+                console.error('后端API调用错误:', error);
                 aiResult = getDefaultResult();
             }
 
@@ -1551,6 +1640,11 @@ print(f"预期收益: {result.fval:.4f}")`;
                 document.getElementById(id).classList.add('bg-slate-700');
             });
         }
+
+        // Initialize auth on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+        });
 
         // GSAP Animations
         if (typeof gsap !== 'undefined') {
