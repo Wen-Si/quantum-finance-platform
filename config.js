@@ -1,7 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:3000/api';
-// For production, change to your deployed backend URL:
-// const API_BASE_URL = 'https://your-backend.vercel.app/api';
+const API_BASE_URL = 'https://quantum-finance-api.vercel.app/api';
 
 // Auth token storage
 function getToken() {
