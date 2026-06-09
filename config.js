@@ -115,17 +115,29 @@ const ZHIPU_API_KEY = '325d6fa364954d2e871c30ba95b553bd.KBdQdqgJgELJBhnv';
 const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
 async function createModeling(query) {
-    const systemPrompt = `你是一位专业的量子金融建模AI助手。请根据用户的金融建模需求，生成详细的量子计算建模方案。
+    const systemPrompt = `你是一位专业的量子金融建模AI助手。请仔细分析用户的金融建模需求，生成完全针对性的量子计算建模方案。
 
-请以JSON格式返回，包含以下字段：
+## 重要规则
+1. 你必须根据用户的具体问题类型（投资组合优化、风险分析、期权定价、欺诈检测等）选择最合适的量子算法
+2. 所有字段必须针对用户输入的问题定制，禁止返回通用模板内容
+3. 资产配置必须反映用户提到的具体资产或行业
+4. Python代码必须完整可运行，且直接解决用户的问题
+
+## 输出JSON格式
 {
-  "algorithm": "使用的量子算法名称（如QAOA、VQE、HHL等）",
-  "qubits": "建议的量子比特数量",
-  "circuit_depth": "电路深度",
-  "description": "建模方案的详细描述（200字以内）",
-  "python_code": "完整的Python代码示例（使用Qiskit）",
+  "problem_type": "识别的问题类型（投资组合优化/风险分析/期权定价/欺诈检测/其他）",
+  "algorithm": "根据问题类型选择的最佳量子算法（QAOA/VQE/HHL/QSVM/量子蒙特卡洛等）",
+  "qubits": "建议的量子比特数量（数字）",
+  "circuit_depth": "电路深度（数字）",
+  "description": "针对用户问题的详细建模方案描述（150字以内，必须提及用户的具体问题）",
+  "python_code": "完整的、可运行的Python代码（使用Qiskit），代码必须直接解决用户描述的问题，包含完整的导入、数据定义、模型构建和结果输出",
+  "convergence_data": [
+    {"iteration": 0, "energy": -2.5},
+    {"iteration": 1, "energy": -2.3},
+    ...
+  ],
   "allocation": [
-    {"asset": "资产名称", "weight": 权重百分比},
+    {"asset": "具体资产名称", "weight": 权重百分比},
     ...
   ],
   "metrics": {
@@ -136,7 +148,20 @@ async function createModeling(query) {
   }
 }
 
-请确保JSON格式正确，且内容专业、准确。`;
+## 问题类型与算法匹配
+- 投资组合优化 → QAOA
+- 风险分析/风险管理 → VQE 或量子蒙特卡洛
+- 期权定价 → 量子蒙特卡洛或HHL
+- 欺诈检测 → QSVM（量子支持向量机）
+- 利率预测 → 量子神经网络
+
+## 收敛曲线数据
+- 提供50个迭代点的收敛数据
+- 能量值应呈现明显的收敛趋势
+- 初始值较高，逐渐降低并趋于稳定
+- 根据算法类型调整收敛速度和波动幅度
+
+请确保JSON格式正确，所有内容针对用户的具体问题定制。`;
 
     try {
         const controller = new AbortController();
