@@ -1126,9 +1126,6 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             document.getElementById('user-input').value = examples[type];
         }
 
-        // Backend API Integration
-        // API_BASE_URL is defined in config.js
-
         // Auth state management
         let currentUser = null;
 
@@ -1169,7 +1166,7 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             modal.id = 'auth-modal';
             modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm';
             modal.innerHTML = `
-                <div class="glass rounded-2xl p-8 max-w-md w-full mx-4 glow-border">
+                <div class="glass rounded-2xl p-8 max-w-md w-full mx-4 glow-border relative">
                     <h2 class="text-2xl font-bold mb-6 text-center">${type === 'login' ? '登录' : '注册'}</h2>
                     <div class="space-y-4">
                         <div>
@@ -1241,8 +1238,6 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             updateAuthUI();
         }
 
-        // apiCall is defined in config.js, using API_BASE_URL from above
-
         // Modeling process
         async function startModeling() {
             if (!isLoggedIn()) {
@@ -1263,11 +1258,11 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             // Update step indicator
             updateStep(2);
 
-            // Call backend API
-            await callBackendModeling(input);
+            // Call AI modeling
+            await callAIModeling(input);
         }
 
-        async function callBackendModeling(userInput) {
+        async function callAIModeling(userInput) {
             const steps = [
                 { title: '正在分析您的需求...', desc: 'AI正在解析金融语义并提取关键参数', bar: 'progress-bar-1', indicator: 'progress-1' },
                 { title: '正在构建数学模型...', desc: '将问题转化为二次无约束二元优化(QUBO)形式', bar: 'progress-bar-2', indicator: 'progress-2' },
@@ -1284,7 +1279,7 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                 const data = await createModeling(userInput);
                 aiResult = data.result;
             } catch (error) {
-                console.error('后端API调用错误:', error);
+                console.error('AI调用错误:', error);
                 aiResult = getDefaultResult();
             }
 
