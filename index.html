@@ -1027,11 +1027,15 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                     <div class="grid md:grid-cols-2 gap-6">
                         <div class="glass rounded-2xl p-6 glow-border">
                             <h4 class="font-bold mb-4">收敛曲线</h4>
-                            <canvas id="convergenceChart" height="200"></canvas>
+                            <div class="relative" style="height: clamp(200px, 25vw, 320px);">
+                                <canvas id="convergenceChart"></canvas>
+                            </div>
                         </div>
                         <div class="glass rounded-2xl p-6 glow-border">
                             <h4 class="font-bold mb-4">资产配置</h4>
-                            <canvas id="allocationChart" height="200"></canvas>
+                            <div class="relative" style="height: clamp(200px, 25vw, 320px);">
+                                <canvas id="allocationChart"></canvas>
+                            </div>
                         </div>
                     </div>
 
