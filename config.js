@@ -202,7 +202,7 @@ async function createModeling(query) {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         const response = await fetch(ZHIPU_API_URL, {
             method: 'POST',

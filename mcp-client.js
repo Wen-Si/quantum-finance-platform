@@ -19,6 +19,27 @@ const TUSHARE_MCP_CONFIG = {
     }
 };
 
+// 带超时的fetch封装
+async function fetchWithTimeout(url, options, timeoutMs = 5000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('请求超时');
+        }
+        throw error;
+    }
+}
+
 // 盈米 MCP JSON-RPC 调用封装
 async function yingmiMcpCall(method, params = {}) {
     const requestBody = {
@@ -29,11 +50,11 @@ async function yingmiMcpCall(method, params = {}) {
     };
 
     try {
-        const response = await fetch(YINGMI_MCP_CONFIG.url, {
+        const response = await fetchWithTimeout(YINGMI_MCP_CONFIG.url, {
             method: 'POST',
             headers: YINGMI_MCP_CONFIG.headers,
             body: JSON.stringify(requestBody)
-        });
+        }, 5000);
 
         if (!response.ok) {
             throw new Error(`盈米MCP请求失败: ${response.status}`);
@@ -47,7 +68,7 @@ async function yingmiMcpCall(method, params = {}) {
 
         return data.result;
     } catch (error) {
-        console.error('盈米MCP调用错误:', error);
+        console.warn('盈米MCP调用错误:', error.message);
         throw error;
     }
 }
@@ -62,11 +83,11 @@ async function tushareMcpCall(method, params = {}) {
     };
 
     try {
-        const response = await fetch(TUSHARE_MCP_CONFIG.url, {
+        const response = await fetchWithTimeout(TUSHARE_MCP_CONFIG.url, {
             method: 'POST',
             headers: TUSHARE_MCP_CONFIG.headers,
             body: JSON.stringify(requestBody)
-        });
+        }, 5000);
 
         if (!response.ok) {
             throw new Error(`Tushare MCP请求失败: ${response.status}`);
@@ -80,7 +101,7 @@ async function tushareMcpCall(method, params = {}) {
 
         return data.result;
     } catch (error) {
-        console.error('Tushare MCP调用错误:', error);
+        console.warn('Tushare MCP调用错误:', error.message);
         throw error;
     }
 }
@@ -467,7 +488,15 @@ async function buildAIPromptWithRealData(userQuery) {
     if (isAStockQuery(userQuery)) {
         // A股相关 → 走Tushare MCP
         dataSource = 'tushare';
-        mcpData = await getAStockDataFromQuery(userQuery);
+        try {
+            mcpData = await Promise.race([
+                getAStockDataFromQuery(userQuery),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('MCP超时')), 8000))
+            ]);
+        } catch (e) {
+            console.warn('Tushare MCP获取超时或失败:', e.message);
+            mcpData = { stocks: [], dailyBars: [], dailyBasic: [], indexData: null };
+        }
         
         if (mcpData.dailyBars && mcpData.dailyBars.length > 0) {
             dataContext += '\n## 真实A股行情数据（来自Tushare MCP）\n';
@@ -510,7 +539,15 @@ async function buildAIPromptWithRealData(userQuery) {
     } else {
         // 基金相关 → 走盈米 MCP
         dataSource = 'yingmi';
-        mcpData = await getFundsDataFromQuery(userQuery);
+        try {
+            mcpData = await Promise.race([
+                getFundsDataFromQuery(userQuery),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('MCP超时')), 8000))
+            ]);
+        } catch (e) {
+            console.warn('盈米 MCP获取超时或失败:', e.message);
+            mcpData = { funds: [], fundDetails: [], fundPerformance: [] };
+        }
         
         if (mcpData.funds && mcpData.funds.length > 0) {
             dataContext += '\n## 真实基金数据（来自盈米MCP）\n';
