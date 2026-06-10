@@ -147,6 +147,7 @@ async function createModeling(query) {
   "circuit_depth": "电路深度（数字）",
   "description": "针对用户问题的详细建模方案描述（150字以内，必须提及用户的具体问题）",
   "python_code": "完整的、可运行的Python代码（使用Qiskit），代码必须直接解决用户描述的问题，包含完整的导入、数据定义、模型构建和结果输出",
+  "circuit_svg": "完整的SVG代码字符串，用于在网页中渲染量子电路图。SVG必须包含：量子比特线、Hadamard门、CNOT门、旋转门(RZ/RY/RX)、测量门。SVG viewBox设为'0 0 800 200'，宽度800，高度200。根据qubits数量动态调整量子比特线数量，根据algorithm类型选择合适的门序列。",
   "convergence_data": [
     {"iteration": 0, "energy": -2.5},
     {"iteration": 1, "energy": -2.3},
@@ -171,11 +172,25 @@ async function createModeling(query) {
 - 欺诈检测 → QSVM（量子支持向量机）
 - 利率预测 → 量子神经网络
 
+## 量子电路SVG生成规则
+- SVG viewBox="0 0 800 200"
+- 量子比特线水平排列，标签在左侧
+- Hadamard门用H标记的方框
+- CNOT门用圆点+竖线表示
+- 旋转门用RZ/RY/RX标记的方框
+- 测量门用M标记的方框
+- 不同算法使用不同颜色主题
+- 电路结构必须反映实际算法的门序列
+
 ## 收敛曲线数据
 - 提供50个迭代点的收敛数据
 - 能量值应呈现明显的收敛趋势
 - 初始值较高，逐渐降低并趋于稳定
 - 根据算法类型调整收敛速度和波动幅度
+- QAOA: 快速收敛，波动较小
+- VQE: 中等收敛速度，有一定波动
+- HHL: 线性收敛
+- QSVM: 阶梯式收敛
 
 请确保JSON格式正确，所有内容针对用户的具体问题定制。`;
 

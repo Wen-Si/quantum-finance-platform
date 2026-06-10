@@ -1261,9 +1261,10 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
             document.getElementById('result-section').classList.remove('hidden');
             updateStep(4);
 
-            // Initialize charts with AI-generated convergence data
+            // Initialize charts with AI-generated convergence data and algorithm type
             setTimeout(() => {
-                initCharts(window.aiConvergenceData);
+                const algorithm = document.getElementById('result-algorithm').textContent;
+                initCharts(window.aiConvergenceData, algorithm);
             }, 100);
         }
 
@@ -1426,8 +1427,8 @@ print(f"预期收益: {result.fval:.4f}")`;
                 window.aiAllocationData = result.allocation;
             }
             
-            // Generate dynamic quantum circuit based on AI result
-            generateQuantumCircuit(result.qubits, result.algorithm);
+            // Render quantum circuit from AI-generated SVG
+            renderQuantumCircuit(result.circuit_svg, result.qubits, result.algorithm);
             
             // Store convergence data for chart
             window.aiConvergenceData = result.convergence_data || null;
@@ -1692,8 +1693,27 @@ print(f"预期收益: {result.fval:.4f}")`;
             });
         }
 
-        // Dynamic Quantum Circuit Generator
-        function generateQuantumCircuit(qubits, algorithm) {
+        // Render Quantum Circuit from AI-generated SVG
+        function renderQuantumCircuit(circuitSvg, qubits, algorithm) {
+            const svg = document.getElementById('circuit-svg');
+            if (!svg) return;
+            
+            // If AI returned a circuit_svg, use it directly
+            if (circuitSvg && circuitSvg.trim().startsWith('<svg')) {
+                // Extract inner content from AI SVG
+                const innerMatch = circuitSvg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+                if (innerMatch) {
+                    svg.innerHTML = innerMatch[1];
+                    return;
+                }
+            }
+            
+            // Fallback: generate based on qubits and algorithm
+            generateQuantumCircuitFallback(qubits, algorithm);
+        }
+
+        // Fallback quantum circuit generator (when AI doesn't return SVG)
+        function generateQuantumCircuitFallback(qubits, algorithm) {
             const svg = document.getElementById('circuit-svg');
             if (!svg) return;
             
@@ -1806,8 +1826,8 @@ print(f"预期收益: {result.fval:.4f}")`;
             svg.innerHTML = svgContent;
         }
 
-        function initCharts(convergenceData) {
-            // Convergence Chart
+        function initCharts(convergenceData, algorithm) {
+            // Convergence Chart - uses AI-generated data
             const convergenceCtx = document.getElementById('convergenceChart').getContext('2d');
             
             // Use AI-generated convergence data if available
@@ -1815,7 +1835,8 @@ print(f"预期收益: {result.fval:.4f}")`;
             if (convergenceData && convergenceData.length > 0) {
                 chartData = convergenceData.map(d => ({ x: d.iteration || d.x, y: d.energy || d.y }));
             } else {
-                // Fallback: generate based on algorithm type
+                // Fallback: only use when AI doesn't return data
+                console.warn('AI未返回收敛曲线数据，使用默认生成');
                 for (let i = 0; i <= 50; i++) {
                     chartData.push({
                         x: i,
@@ -1823,15 +1844,25 @@ print(f"预期收益: {result.fval:.4f}")`;
                     });
                 }
             }
+            
+            // Determine chart style based on algorithm
+            const algorithmStyles = {
+                'QAOA': { color: '#0ea5e9', label: 'QAOA能量收敛' },
+                'VQE': { color: '#8b5cf6', label: 'VQE能量收敛' },
+                'HHL': { color: '#06b6d4', label: 'HHL误差收敛' },
+                'QSVM': { color: '#10b981', label: 'QSVM损失收敛' },
+                'QMC': { color: '#f59e0b', label: '量子蒙特卡洛收敛' }
+            };
+            const style = algorithmStyles[algorithm] || algorithmStyles['QAOA'];
 
             new Chart(convergenceCtx, {
                 type: 'line',
                 data: {
                     datasets: [{
-                        label: '能量收敛',
+                        label: style.label,
                         data: chartData,
-                        borderColor: '#0ea5e9',
-                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderColor: style.color,
+                        backgroundColor: style.color + '1A',
                         fill: true,
                         tension: 0.4,
                         pointRadius: 0
@@ -1841,7 +1872,10 @@ print(f"预期收益: {result.fval:.4f}")`;
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { 
+                            display: true,
+                            labels: { color: '#94a3b8' }
+                        }
                     },
                     scales: {
                         x: {
