@@ -115,6 +115,20 @@ const ZHIPU_API_KEY = '325d6fa364954d2e871c30ba95b553bd.KBdQdqgJgELJBhnv';
 const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
 async function createModeling(query) {
+    // Step 1: Fetch real fund data from MCP
+    let mcpData = null;
+    let dataContext = '';
+    
+    try {
+        if (window.MCPClient) {
+            const mcpResult = await window.MCPClient.buildAIPromptWithRealData(query);
+            mcpData = mcpResult.mcpData;
+            dataContext = mcpResult.dataContext;
+        }
+    } catch (mcpError) {
+        console.warn('MCP数据获取失败，使用纯AI生成:', mcpError);
+    }
+
     const systemPrompt = `你是一位专业的量子金融建模AI助手。请仔细分析用户的金融建模需求，生成完全针对性的量子计算建模方案。
 
 ## 重要规则
@@ -122,6 +136,7 @@ async function createModeling(query) {
 2. 所有字段必须针对用户输入的问题定制，禁止返回通用模板内容
 3. 资产配置必须反映用户提到的具体资产或行业
 4. Python代码必须完整可运行，且直接解决用户的问题
+5. 如果有提供真实基金数据，必须在分析中引用这些数据，生成基于真实数据的建模方案
 
 ## 输出JSON格式
 {
@@ -163,9 +178,15 @@ async function createModeling(query) {
 
 请确保JSON格式正确，所有内容针对用户的具体问题定制。`;
 
+    // Build user message with MCP data if available
+    let userMessage = query;
+    if (dataContext) {
+        userMessage = query + '\n\n' + dataContext + '\n\n请基于以上真实数据，生成针对性的量子金融建模方案。';
+    }
+
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
 
         const response = await fetch(ZHIPU_API_URL, {
             method: 'POST',
@@ -177,7 +198,7 @@ async function createModeling(query) {
                 model: 'glm-4-flash',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: query }
+                    { role: 'user', content: userMessage }
                 ],
                 temperature: 0.7,
                 max_tokens: 4096
@@ -207,6 +228,11 @@ async function createModeling(query) {
             result = getDefaultResult();
         }
 
+        // Merge MCP data into result for frontend display
+        if (mcpData && mcpData.funds && mcpData.funds.length > 0) {
+            result.mcpData = mcpData;
+        }
+
         // Save to history
         saveHistoryItem({ query, ...result });
 
@@ -214,6 +240,7 @@ async function createModeling(query) {
     } catch (error) {
         console.error('AI调用错误:', error);
         const fallback = getDefaultResult();
+        if (mcpData) fallback.mcpData = mcpData;
         saveHistoryItem({ query, ...fallback });
         return { success: true, result: fallback, fallback: true };
     }

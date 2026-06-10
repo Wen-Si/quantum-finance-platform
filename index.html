@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="config.js"></script>
+    <script src="mcp-client.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -982,6 +983,23 @@ result = qaoa.compute_minimum_eigenvalue(problem.to_ising())</pre>
                         </div>
                     </div>
 
+                    <!-- MCP Real Data Panel -->
+                    <div id="mcp-data-panel" class="hidden glass rounded-2xl p-8 glow-border mb-8">
+                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            盈米MCP真实基金数据
+                        </h3>
+                        <div id="mcp-fund-list" class="space-y-4"></div>
+                        <div id="mcp-allocation" class="mt-6 hidden">
+                            <h4 class="font-bold mb-3 text-sm text-slate-400">资产配置分析</h4>
+                            <div id="mcp-allocation-content" class="text-sm text-slate-300"></div>
+                        </div>
+                        <div id="mcp-risk" class="mt-6 hidden">
+                            <h4 class="font-bold mb-3 text-sm text-slate-400">风险分析</h4>
+                            <div id="mcp-risk-content" class="text-sm text-slate-300"></div>
+                        </div>
+                    </div>
+
                     <!-- Performance Metrics -->
                     <div class="glass rounded-2xl p-8 glow-border">
                         <h3 class="text-xl font-bold mb-6">性能指标</h3>
@@ -1413,6 +1431,98 @@ print(f"预期收益: {result.fval:.4f}")`;
             
             // Store convergence data for chart
             window.aiConvergenceData = result.convergence_data || null;
+            
+            // Display MCP real data if available
+            displayMCPData(result.mcpData);
+        }
+
+        function displayMCPData(mcpData) {
+            const panel = document.getElementById('mcp-data-panel');
+            const fundList = document.getElementById('mcp-fund-list');
+            const allocationDiv = document.getElementById('mcp-allocation');
+            const riskDiv = document.getElementById('mcp-risk');
+            
+            if (!mcpData || !mcpData.funds || mcpData.funds.length === 0) {
+                panel.classList.add('hidden');
+                return;
+            }
+            
+            panel.classList.remove('hidden');
+            fundList.innerHTML = '';
+            
+            // Display fund cards
+            mcpData.funds.forEach((fund, idx) => {
+                const detail = mcpData.fundDetails && mcpData.fundDetails[idx];
+                const perf = mcpData.fundPerformance && mcpData.fundPerformance[idx];
+                
+                const fundCard = document.createElement('div');
+                fundCard.className = 'bg-deep-900/50 rounded-xl p-4 border border-slate-700/50';
+                
+                let perfHtml = '';
+                if (perf) {
+                    perfHtml = `
+                        <div class="grid grid-cols-4 gap-2 mt-3 text-xs">
+                            <div class="text-center">
+                                <div class="text-quantum-400 font-bold">${perf.return1Year || 'N/A'}</div>
+                                <div class="text-slate-500">近1年</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-quantum-400 font-bold">${perf.return3Year || 'N/A'}</div>
+                                <div class="text-slate-500">近3年</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-purple-400 font-bold">${perf.sharpeRatio || 'N/A'}</div>
+                                <div class="text-slate-500">夏普比率</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-red-400 font-bold">${perf.maxDrawdown || 'N/A'}</div>
+                                <div class="text-slate-500">最大回撤</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                fundCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-slate-200">${fund.fundName}</div>
+                            <div class="text-xs text-slate-400 mt-1">${fund.fundCode}</div>
+                        </div>
+                        <div class="text-xs px-2 py-1 rounded bg-quantum-500/20 text-quantum-400">
+                            ${detail ? detail.fundType : '基金'}
+                        </div>
+                    </div>
+                    ${detail ? `
+                        <div class="flex gap-4 mt-2 text-xs text-slate-400">
+                            <span>风险等级: ${detail.riskLevel || '未知'}</span>
+                            <span>管理公司: ${detail.managementCompany || '未知'}</span>
+                        </div>
+                    ` : ''}
+                    ${perfHtml}
+                `;
+                
+                fundList.appendChild(fundCard);
+            });
+            
+            // Display asset allocation
+            if (mcpData.assetAllocation) {
+                allocationDiv.classList.remove('hidden');
+                document.getElementById('mcp-allocation-content').innerHTML = `
+                    <pre class="whitespace-pre-wrap">${JSON.stringify(mcpData.assetAllocation, null, 2)}</pre>
+                `;
+            } else {
+                allocationDiv.classList.add('hidden');
+            }
+            
+            // Display risk analysis
+            if (mcpData.riskAnalysis) {
+                riskDiv.classList.remove('hidden');
+                document.getElementById('mcp-risk-content').innerHTML = `
+                    <pre class="whitespace-pre-wrap">${JSON.stringify(mcpData.riskAnalysis, null, 2)}</pre>
+                `;
+            } else {
+                riskDiv.classList.add('hidden');
+            }
         }
 
         function updateStep(step) {
