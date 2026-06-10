@@ -124,6 +124,7 @@ async function createModeling(query) {
             const mcpResult = await window.MCPClient.buildAIPromptWithRealData(query);
             mcpData = mcpResult.mcpData;
             dataContext = mcpResult.dataContext;
+            dataSource = mcpResult.dataSource;
         }
     } catch (mcpError) {
         console.warn('MCP数据获取失败，使用纯AI生成:', mcpError);
@@ -229,8 +230,12 @@ async function createModeling(query) {
         }
 
         // Merge MCP data into result for frontend display
-        if (mcpData && mcpData.funds && mcpData.funds.length > 0) {
-            result.mcpData = mcpData;
+        if (mcpData) {
+            const hasData = (mcpData.funds && mcpData.funds.length > 0) || mcpData.dailyBars || mcpData.indexData;
+            if (hasData) {
+                result.mcpData = mcpData;
+                result.dataSource = dataSource;
+            }
         }
 
         // Save to history

@@ -1433,16 +1433,28 @@ print(f"预期收益: {result.fval:.4f}")`;
             window.aiConvergenceData = result.convergence_data || null;
             
             // Display MCP real data if available
-            displayMCPData(result.mcpData);
+            displayMCPData(result.mcpData, result.dataSource);
         }
 
-        function displayMCPData(mcpData) {
+        function displayMCPData(mcpData, dataSource) {
             const panel = document.getElementById('mcp-data-panel');
             const fundList = document.getElementById('mcp-fund-list');
             const allocationDiv = document.getElementById('mcp-allocation');
             const riskDiv = document.getElementById('mcp-risk');
             
-            if (!mcpData || !mcpData.funds || mcpData.funds.length === 0) {
+            // Update panel title based on data source
+            const panelTitle = panel.querySelector('h3');
+            if (dataSource === 'tushare') {
+                panelTitle.innerHTML = '<span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span> Tushare A股市场真实数据';
+            } else {
+                panelTitle.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 盈米MCP真实基金数据';
+            }
+            
+            // Check if there's any data to display
+            const hasYingmiData = mcpData && mcpData.funds && mcpData.funds.length > 0;
+            const hasTushareData = mcpData && (mcpData.dailyBars || mcpData.indexData || mcpData.dailyBasic);
+            
+            if (!hasYingmiData && !hasTushareData) {
                 panel.classList.add('hidden');
                 return;
             }
@@ -1450,59 +1462,194 @@ print(f"预期收益: {result.fval:.4f}")`;
             panel.classList.remove('hidden');
             fundList.innerHTML = '';
             
-            // Display fund cards
-            mcpData.funds.forEach((fund, idx) => {
-                const detail = mcpData.fundDetails && mcpData.fundDetails[idx];
-                const perf = mcpData.fundPerformance && mcpData.fundPerformance[idx];
-                
-                const fundCard = document.createElement('div');
-                fundCard.className = 'bg-deep-900/50 rounded-xl p-4 border border-slate-700/50';
-                
-                let perfHtml = '';
-                if (perf) {
-                    perfHtml = `
-                        <div class="grid grid-cols-4 gap-2 mt-3 text-xs">
-                            <div class="text-center">
-                                <div class="text-quantum-400 font-bold">${perf.return1Year || 'N/A'}</div>
-                                <div class="text-slate-500">近1年</div>
+            // === Tushare A股数据展示 ===
+            if (hasTushareData) {
+                // 展示日K线数据
+                if (mcpData.dailyBars && mcpData.dailyBars.length > 0) {
+                    mcpData.dailyBars.forEach(bar => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-deep-900/50 rounded-xl p-4 border border-orange-500/30';
+                        
+                        let tableHtml = '';
+                        if (bar.data && bar.data.items) {
+                            const items = bar.data.items.slice(-5).reverse();
+                            tableHtml = `
+                                <table class="w-full text-xs mt-3">
+                                    <thead>
+                                        <tr class="text-slate-500">
+                                            <th class="text-left py-1">日期</th>
+                                            <th class="text-right py-1">开盘</th>
+                                            <th class="text-right py-1">收盘</th>
+                                            <th class="text-right py-1">最高</th>
+                                            <th class="text-right py-1">最低</th>
+                                            <th class="text-right py-1">成交量</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${items.map(item => `
+                                            <tr class="border-t border-slate-800">
+                                                <td class="py-1 text-slate-400">${item.trade_date}</td>
+                                                <td class="text-right ${item.close >= item.open ? 'text-red-400' : 'text-emerald-400'}">${item.open}</td>
+                                                <td class="text-right font-bold ${item.close >= item.open ? 'text-red-400' : 'text-emerald-400'}">${item.close}</td>
+                                                <td class="text-right text-slate-300">${item.high}</td>
+                                                <td class="text-right text-slate-300">${item.low}</td>
+                                                <td class="text-right text-slate-400">${item.vol}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `;
+                        }
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-bold text-slate-200">${bar.code}</div>
+                                    <div class="text-xs text-orange-400 mt-1">日K线数据</div>
+                                </div>
+                                <div class="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-400">Tushare</div>
                             </div>
-                            <div class="text-center">
-                                <div class="text-quantum-400 font-bold">${perf.return3Year || 'N/A'}</div>
-                                <div class="text-slate-500">近3年</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-purple-400 font-bold">${perf.sharpeRatio || 'N/A'}</div>
-                                <div class="text-slate-500">夏普比率</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-red-400 font-bold">${perf.maxDrawdown || 'N/A'}</div>
-                                <div class="text-slate-500">最大回撤</div>
-                            </div>
-                        </div>
-                    `;
+                            ${tableHtml}
+                        `;
+                        fundList.appendChild(card);
+                    });
                 }
                 
-                fundCard.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="font-bold text-slate-200">${fund.fundName}</div>
-                            <div class="text-xs text-slate-400 mt-1">${fund.fundCode}</div>
-                        </div>
-                        <div class="text-xs px-2 py-1 rounded bg-quantum-500/20 text-quantum-400">
-                            ${detail ? detail.fundType : '基金'}
-                        </div>
-                    </div>
-                    ${detail ? `
-                        <div class="flex gap-4 mt-2 text-xs text-slate-400">
-                            <span>风险等级: ${detail.riskLevel || '未知'}</span>
-                            <span>管理公司: ${detail.managementCompany || '未知'}</span>
-                        </div>
-                    ` : ''}
-                    ${perfHtml}
-                `;
+                // 展示基本面指标
+                if (mcpData.dailyBasic && mcpData.dailyBasic.length > 0) {
+                    mcpData.dailyBasic.forEach(basic => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-deep-900/50 rounded-xl p-4 border border-orange-500/30';
+                        
+                        let metricsHtml = '';
+                        if (basic.data && basic.data.items) {
+                            const item = basic.data.items[basic.data.items.length - 1];
+                            metricsHtml = `
+                                <div class="grid grid-cols-4 gap-3 mt-3 text-xs">
+                                    <div class="text-center">
+                                        <div class="text-orange-400 font-bold">${item.pe || 'N/A'}</div>
+                                        <div class="text-slate-500">市盈率PE</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-orange-400 font-bold">${item.pb || 'N/A'}</div>
+                                        <div class="text-slate-500">市净率PB</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-purple-400 font-bold">${item.total_mv || 'N/A'}</div>
+                                        <div class="text-slate-500">总市值</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-cyan-400 font-bold">${item.turnover_rate || 'N/A'}</div>
+                                        <div class="text-slate-500">换手率</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-bold text-slate-200">${basic.code}</div>
+                                    <div class="text-xs text-orange-400 mt-1">基本面指标</div>
+                                </div>
+                            </div>
+                            ${metricsHtml}
+                        `;
+                        fundList.appendChild(card);
+                    });
+                }
                 
-                fundList.appendChild(fundCard);
-            });
+                // 展示大盘指数
+                if (mcpData.indexData && mcpData.indexData.items) {
+                    const card = document.createElement('div');
+                    card.className = 'bg-deep-900/50 rounded-xl p-4 border border-orange-500/30';
+                    
+                    const items = mcpData.indexData.items.slice(-5).reverse();
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-slate-200">上证指数 (000001.SH)</div>
+                                <div class="text-xs text-orange-400 mt-1">近期走势</div>
+                            </div>
+                        </div>
+                        <table class="w-full text-xs mt-3">
+                            <thead>
+                                <tr class="text-slate-500">
+                                    <th class="text-left py-1">日期</th>
+                                    <th class="text-right py-1">收盘</th>
+                                    <th class="text-right py-1">涨跌幅</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.map(item => `
+                                    <tr class="border-t border-slate-800">
+                                        <td class="py-1 text-slate-400">${item.trade_date}</td>
+                                        <td class="text-right font-bold text-slate-200">${item.close}</td>
+                                        <td class="text-right font-bold ${parseFloat(item.pct_chg) >= 0 ? 'text-red-400' : 'text-emerald-400'}">${item.pct_chg}%</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    fundList.appendChild(card);
+                }
+            }
+            
+            // === 盈米基金数据展示 ===
+            if (hasYingmiData) {
+                mcpData.funds.forEach((fund, idx) => {
+                    const detail = mcpData.fundDetails && mcpData.fundDetails[idx];
+                    const perf = mcpData.fundPerformance && mcpData.fundPerformance[idx];
+                    
+                    const fundCard = document.createElement('div');
+                    fundCard.className = 'bg-deep-900/50 rounded-xl p-4 border border-slate-700/50';
+                    
+                    let perfHtml = '';
+                    if (perf) {
+                        perfHtml = `
+                            <div class="grid grid-cols-4 gap-2 mt-3 text-xs">
+                                <div class="text-center">
+                                    <div class="text-quantum-400 font-bold">${perf.return1Year || 'N/A'}</div>
+                                    <div class="text-slate-500">近1年</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-quantum-400 font-bold">${perf.return3Year || 'N/A'}</div>
+                                    <div class="text-slate-500">近3年</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-purple-400 font-bold">${perf.sharpeRatio || 'N/A'}</div>
+                                    <div class="text-slate-500">夏普比率</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-red-400 font-bold">${perf.maxDrawdown || 'N/A'}</div>
+                                    <div class="text-slate-500">最大回撤</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    fundCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-slate-200">${fund.fundName}</div>
+                                <div class="text-xs text-slate-400 mt-1">${fund.fundCode}</div>
+                            </div>
+                            <div class="text-xs px-2 py-1 rounded bg-quantum-500/20 text-quantum-400">
+                                ${detail ? detail.fundType : '基金'}
+                            </div>
+                        </div>
+                        ${detail ? `
+                            <div class="flex gap-4 mt-2 text-xs text-slate-400">
+                                <span>风险等级: ${detail.riskLevel || '未知'}</span>
+                                <span>管理公司: ${detail.managementCompany || '未知'}</span>
+                            </div>
+                        ` : ''}
+                        ${perfHtml}
+                    `;
+                    
+                    fundList.appendChild(fundCard);
+                });
+            }
             
             // Display asset allocation
             if (mcpData.assetAllocation) {
